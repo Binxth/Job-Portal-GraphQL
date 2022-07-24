@@ -1,0 +1,23 @@
+type Query{
+    job(id: ID!): Job
+    jobs: [Job]
+    company (id: ID!): Company
+    
+    
+}
+
+#as each Job has a Company object not a company id, has to resolve in resolvers
+type Job {
+    id: ID! 
+    title: String
+    description: String
+    company: Company
+}
+
+type Company {
+    id:ID!
+    name: String
+    description: String
+    jobs: [Job]
+
+}
