@@ -14,7 +14,10 @@ const Query = {
 // };
 
 const Mutation = {
-  createJob: (root, { input }) => {
+  createJob: (root, { input }, context) => {
+    if(!context.user){
+      throw new Error("You must be logged in to create a job");
+    }
     const id = db.jobs.create(input);
     return db.jobs.get(id);
   },

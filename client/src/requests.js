@@ -1,3 +1,4 @@
+import { isLoggedIn, getAccessToken } from "./auth";
 const URL = "http://localhost:9000/graphql";
 
 //without refactoring to use graphQL request separately
@@ -24,16 +25,21 @@ export const fetchJobs = async () => {
   return responseBody.data.jobs;
 };
 
-//refracted
+//refracted to use graphQL request separately
 const graphqlRequest = async (query, variable = {}) => {
-  const response = await fetch(URL, {
+
+  const request = {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       query: query,
       variables: variable,
     }),
-  });
+  }  
+  if (isLoggedIn) {
+    request.headers["authorization"] = "Bearer " + getAccessToken();
+  }
+  const response = await fetch(URL,request );
   const responseBody = await response.json();
   // console.log(responseBody.errors.map((error)=>error.message))
   if (responseBody.errors) {

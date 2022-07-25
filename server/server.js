@@ -28,7 +28,7 @@ const typeDefs =
 //importing resolver from resolvers.js
 const resolvers = require('./resolvers')
 
-const apolloServer =  new  ApolloServer({typeDefs, resolvers})
+const apolloServer =  new  ApolloServer({typeDefs, resolvers, context:({req})=>({user : req.user})});
 apolloServer.start().then(()=>{
   apolloServer.applyMiddleware({app, path: '/graphql'});
   console.log("apollo server started");
@@ -49,7 +49,7 @@ app.post('/login', (req, res) => {
     res.sendStatus(401);
     return;
   }
-  const token = jwt.sign({sub: user.id}, jwtSecret);
+  const token = jwt.sign({userId: user.id}, jwtSecret, {expiresIn: '1h'});
   res.send({token});
 });
 
