@@ -11,8 +11,8 @@ export const JobForm=()=>{
 
   async function handleClick(event) {
     event.preventDefault();
-    const companyId = 'HJRa-DOuG'
-    const job = await createJoB({companyId,title, description});
+    
+    const job = await createJoB({title, description});
     // console.log(job);
     // const job = await createJoB( {companyId: 'HJRa-DOuG', title: 'asd', description: 'asdasd'});
     history.push(`/jobs/${job.id}`);

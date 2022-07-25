@@ -52,6 +52,7 @@ const graphqlRequest = async (query, variable = {}) => {
   return responseBody.data;
 };
 
+//get job by id
 export const fetchJob = async (id) => {
   const query = `query JobQuery($id: ID! ) {
     job(id: $id) {
@@ -70,7 +71,7 @@ export const fetchJob = async (id) => {
   return data.job;
 };
 
-//without refactoring
+//without refactoring get company by id
 export const fetchCompany = async (id) => {
   const response = await fetch(URL, {
     method: "POST",
@@ -98,7 +99,7 @@ export const fetchCompany = async (id) => {
 };
 
 
-//mutation using graphql request 
+//mutation using graphql request - create job
 export const createJoB = async (input) => {
   const mutation = `mutation CreateJob($input: CreateJobInput) {
     job: createJob(input: $input) {

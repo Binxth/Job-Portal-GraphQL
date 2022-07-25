@@ -28,7 +28,7 @@ const typeDefs =
 //importing resolver from resolvers.js
 const resolvers = require('./resolvers')
 
-const apolloServer =  new  ApolloServer({typeDefs, resolvers, context:({req})=>({user : req.user})});
+const apolloServer =  new  ApolloServer({typeDefs, resolvers, context:({req})=>({user : req.user && db.users.get(req.user.userId)})});
 apolloServer.start().then(()=>{
   apolloServer.applyMiddleware({app, path: '/graphql'});
   console.log("apollo server started");

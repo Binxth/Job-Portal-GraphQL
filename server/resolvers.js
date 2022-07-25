@@ -4,6 +4,7 @@ const Query = {
   jobs: () => db.jobs.list(),
   job: (root, args) => db.jobs.get(args.id),
   company: (root, args) => db.companies.get(args.id),
+  user: (root, args)=> db.users.get(args.id),
 };
 
 // const Mutation = {
@@ -18,7 +19,7 @@ const Mutation = {
     if(!context.user){
       throw new Error("You must be logged in to create a job");
     }
-    const id = db.jobs.create(input);
+    const id = db.jobs.create({...input, companyId: context.user.companyId});
     return db.jobs.get(id);
   },
 };
@@ -35,5 +36,9 @@ const Company = {
     db.jobs.list().filter((job) => job.companyId === company.id),
 };
 
+const User = {
+  company : (user)=> db.companies.get(user.companyId)
+}
+
 //export all 
-module.exports = { Query, Mutation, Job, Company };
+module.exports = { Query, Mutation, Job, Company, User };
