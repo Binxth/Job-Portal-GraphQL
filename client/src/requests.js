@@ -1,85 +1,77 @@
 import { isLoggedIn, getAccessToken } from "./auth";
+import {
+  InMemoryCache,
+  ApolloClient,
+  gql,
+  ApolloLink,
+  HttpLink,
+  concat,
+} from "@apollo/client";
+
 const URL = "http://localhost:9000/graphql";
 
-//without refactoring to use graphQL request separately
+const authLink = new ApolloLink((operation, forward) => {
+  if (isLoggedIn()) {
+    operation.setContext({
+      headers: {
+        authorization: "Bearer " + getAccessToken(),
+      },
+    });
+  }
+  return forward(operation);
+});
+
+//uri creates a httplink
+const client = new ApolloClient({
+  link: ApolloLink.from([authLink, new HttpLink({ uri: URL })]),
+  //   link: concat(authLink, new HttpLink({ uri: URL })),
+  cache: new InMemoryCache(),
+});
+
 export const fetchJobs = async () => {
-  const response = await fetch(URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      query: `
-            {
-                jobs {
-                  id
-                  title
-                  company {
-                    name
-                  }
-                }
-              }
-            `,
-    }),
-  });
-  const responseBody = await response.json();
-  // console.log(responseBody.data.jobs);
-  return responseBody.data.jobs;
-};
-
-//refracted to use graphQL request separately
-const graphqlRequest = async (query, variable = {}) => {
-
-  const request = {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      query: query,
-      variables: variable,
-    }),
-  }  
-  if (isLoggedIn) {
-    request.headers["authorization"] = "Bearer " + getAccessToken();
-  }
-  const response = await fetch(URL,request );
-  const responseBody = await response.json();
-  // console.log(responseBody.errors.map((error)=>error.message))
-  if (responseBody.errors) {
-    const message = responseBody.errors
-      .map((error) => error.message)
-      .join("\n");
-    throw new Error(message);
-  }
-  // console.log((responseBody.data));
-  return responseBody.data;
+  //wrap with gql
+  const query = gql`
+    {
+      jobs {
+        id
+        title
+        company {
+          name
+        }
+      }
+    }
+  `;
+  //setting fetch policy to not to cache
+  const resp = await client.query({ query, fetchPolicy: "no-cache" });
+  console.log(resp.data.jobs);
+  return resp.data.jobs;
 };
 
 //get job by id
 export const fetchJob = async (id) => {
-  const query = `query JobQuery($id: ID! ) {
-    job(id: $id) {
+  const query = gql`
+    query JobQuery($id: ID!) {
+      job(id: $id) {
         id
-    title
-    description
-    company {
-        id
-        name
+        title
+        description
+        company {
+          id
+          name
+        }
+      }
     }
-    }
-      }`;
+  `;
   const variable = { id: id };
-  const data = await graphqlRequest(query, variable);
-
-  return data.job;
+  //passing query and variables
+  const res = await client.query({ query, variables: variable });
+  return res.data.job;
 };
 
-//without refactoring get company by id
 export const fetchCompany = async (id) => {
-  const response = await fetch(URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      query: `
-  query($companyId: ID!){
-    company(id: $companyId) {
+  const query = gql`
+    query ($companyId: ID!) {
+      company(id: $companyId) {
         id
         description
         name
@@ -88,28 +80,52 @@ export const fetchCompany = async (id) => {
           title
           description
         }
+      }
     }
-}`,
-      variables: { companyId: id },
-    }),
-  });
-  const responseBody = await response.json();
-  console.log(responseBody.data.company);
-  return responseBody.data.company;
+  `;
+  const variable = { companyId: id };
+  const response = await client.query({ query, variables: variable });
+  console.log(response.body);
+  return response.data.company;
 };
 
-
-//mutation using graphql request - create job
+//mutation create job using ApolloClient
 export const createJoB = async (input) => {
-  const mutation = `mutation CreateJob($input: CreateJobInput) {
-    job: createJob(input: $input) {
-      id
-      title
+  const mutation = gql`
+    mutation CreateJob($input: CreateJobInput) {
+      job: createJob(input: $input) {
+        id
+        title
+      }
     }
-  }
   `;
-  const variables = {input};
-  const data = await graphqlRequest(mutation,variables);
-  // console.log(data.job.id);
-  return data.job;
+  const variables = { input };
+  const response = await client.mutate({ mutation, variables: variables });
+
+  //   console.log(data.job.id);
+  return response.data.job;
+};
+
+//refracted to use graphQL request separately
+const graphqlRequest = async (query, variable = {}) => {
+  const request = {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      query: query,
+      variables: variable,
+    }),
+  };
+  if (isLoggedIn()) {
+    request.headers["authorization"] = "Bearer " + getAccessToken();
+  }
+  const response = await fetch(URL, request);
+  const responseBody = await response.json();
+  if (responseBody.errors) {
+    const message = responseBody.errors
+      .map((error) => error.message)
+      .join("\n");
+    throw new Error(message);
+  }
+  return responseBody.data;
 };
