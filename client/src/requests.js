@@ -47,11 +47,34 @@ export const fetchJobs = async () => {
   return resp.data.jobs;
 };
 
+//get job query extracted out of the function
+const jobQuery = gql`
+  query JobQuery($id: ID!) {
+    job(id: $id) {
+      id
+      title
+      description
+      company {
+        id
+        name
+      }
+    }
+  }
+`;
+
 //get job by id
 export const fetchJob = async (id) => {
-  const query = gql`
-    query JobQuery($id: ID!) {
-      job(id: $id) {
+  const variable = { id: id };
+  //passing query and variables
+  const res = await client.query({ query: jobQuery, variables: variable });
+  return res.data.job;
+};
+
+//mutation create job using ApolloClient
+export const createJoB = async (input) => {
+  const mutation = gql`
+    mutation CreateJob($input: CreateJobInput) {
+      job: createJob(input: $input) {
         id
         title
         description
@@ -62,10 +85,18 @@ export const fetchJob = async (id) => {
       }
     }
   `;
-  const variable = { id: id };
-  //passing query and variables
-  const res = await client.query({ query, variables: variable });
-  return res.data.job;
+  const variables = { input };
+  const response = await client.mutate({
+    mutation,
+    variables: variables,
+    update: (cache, mutationResult) => {
+      cache.writeQuery({query: jobQuery, variables: {id: mutationResult.data.job.id}
+      ,data: mutationResult.data})
+    },
+  });
+
+  //   console.log(data.job.id);
+  return response.data.job;
 };
 
 export const fetchCompany = async (id) => {
@@ -89,21 +120,28 @@ export const fetchCompany = async (id) => {
   return response.data.company;
 };
 
-//mutation create job using ApolloClient
-export const createJoB = async (input) => {
-  const mutation = gql`
-    mutation CreateJob($input: CreateJobInput) {
-      job: createJob(input: $input) {
+///
+///
+///
+//before updating - get job by id
+export const fetchJobOld = async (id) => {
+  const query = gql`
+    query JobQuery($id: ID!) {
+      job(id: $id) {
         id
         title
+        description
+        company {
+          id
+          name
+        }
       }
     }
   `;
-  const variables = { input };
-  const response = await client.mutate({ mutation, variables: variables });
-
-  //   console.log(data.job.id);
-  return response.data.job;
+  const variable = { id: id };
+  //passing query and variables
+  const res = await client.query({ query, variables: variable });
+  return res.data.job;
 };
 
 //refracted to use graphQL request separately
